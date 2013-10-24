@@ -283,7 +283,6 @@
 			for (var p in setting.inputs) {
 				if (setting.inputs[p].data('validator').validate(status.GET) != status.PASSED) {
 					result = false;
-					alert(setting.inputs[p].val() + ' : '+ setting.inputs[p].data('validator').validate(status.GET));
 				}
 			}
 			

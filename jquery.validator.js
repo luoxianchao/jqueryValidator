@@ -123,7 +123,7 @@
 					WorkingCSS: inputer.data('validator-working') || inputer.data('va-working'),
 					msgResulter: inputer.data('validator-messager') || inputer.data('va-msgr'),
 					WrongMSG: inputer.data('validator-message') || inputer.data('va-msg'),
-					hook: function(value, resultCall) { return status.PASSED; resultCall(true); },
+					hook: function(value, resultCall) { return status.PASSED; },
 					setWrong: function() {},
 					dismissWrong: function() {},
 					setWorking: function() {},
@@ -241,7 +241,13 @@
 				
 				var v_event = function() {
 					if (v_data.validate(status.VERIFY) == status.PASSED) {
-						v_hook();
+						switch(v_hook()) {
+							case status.PASSED:
+								return v_data.validate(status.PASSED);
+								
+							case status.INVALID:
+								return v_data.validate(status.PASSED);
+						}
 					}
 				};
 				
@@ -277,6 +283,7 @@
 			for (var p in setting.inputs) {
 				if (setting.inputs[p].data('validator').validate(status.GET) != status.PASSED) {
 					result = false;
+					alert(setting.inputs[p].val() + ' : '+ setting.inputs[p].data('validator').validate(status.GET));
 				}
 			}
 			

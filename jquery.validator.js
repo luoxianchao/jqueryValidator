@@ -41,18 +41,27 @@
 		
 		var self = this;
 		
-		var setting = {
-			formats: null,
-			inputs: [],
-			binds: []
-		};
+		self.onSubmit = function(result) {};
 		
-		var status = {
-			WAIT: 1, PASSED: 2, INVALID: 3, VERIFY: 4, GET: 5
-		};
+		self.onWait = self.onPassed = self.onError = function(object) {};
 		
 		self.data = {
 			lastErrPos: {},
+		};
+		
+		var setting = {
+			formats: null,
+			inputs: [],
+			binds: {},
+			events: {
+				Wait: self.onWait,
+				Passed: self.onPassed,
+				Errored: self.onError
+			}
+		};
+		
+		var status = {
+			WAIT: 1, PASSED: 2, INVALID: 3, VERIFY: 4, GET: 5, TEST: 6
 		};
 		
 		var init = function() {
@@ -92,9 +101,19 @@
 				}
 			}
 			
+			if (typeof options.Events === 'object') {
+				for (var f in options.Events) {
+					if (typeof options.Events[f] === 'function') {
+						setting.events[f] = options.Events[f];
+					} else {
+						log('Event ' + f + ' not a closure, ignoring');
+					}
+				}
+			}
+			
 			if (typeof options.Bind === 'object') {
 				for (var f in options.Bind) {
-					if (typeof options.Bind[f] == 'function') {
+					if (typeof options.Bind[f] === 'function') {
 						setting.binds[f] = options.Bind[f];
 					} else {
 						log('Bind ' + f + ' not a closure');
@@ -176,25 +195,33 @@
 					}
 				}
 				
-				v_data.validate = function(validated) {
+				inputer.validate = function(validated) {
 					switch(validated) {
 						case status.GET:
 							var statusCode = inputer.data('validated');
 							
 							if (typeof statusCode === 'undefined') {
-								return v_data.validate(status.VERIFY);
+								return inputer.validate(status.VERIFY);
 							}
 							
 							return statusCode;
 							break;
 							
 						case status.VERIFY:
-							var statusCode = v_data.validate();
+							var statusCode = inputer.validate();
 							
 							if (checkStr(inputer.val(), v_data.Max, v_data.Min, v_data.Type)) {
-								return v_data.validate(status.PASSED);
+								return inputer.validate(status.PASSED);
 							} else {
-								return v_data.validate(status.INVALID);
+								return inputer.validate(status.INVALID);
+							}
+							break;
+							
+						case status.TEST:
+							if (checkStr(inputer.val(), v_data.Max, v_data.Min, v_data.Type)) {
+								return status.PASSED;
+							} else {
+								return status.INVALID;
 							}
 							break;
 							
@@ -202,18 +229,21 @@
 							switch(validated) {
 								case status.WAIT:
 									setCSSWorking();
+									setting.events.Wait(inputer);
 									break;
 									
 								case status.PASSED:
 									dismissCSSWrong();
 									dismissMSGWrong();
 									dismissCSSWorking();
+									setting.events.Passed(inputer);
 									break;
 									
 								case status.INVALID:
 									setCSSWrong();
 									setMSGWrong();
 									dismissCSSWorking();
+									setting.events.Errored(inputer);
 									break;
 							}
 							
@@ -225,41 +255,56 @@
 				};
 				
 				var v_hook = function() {
-					v_data.validate(status.WAIT);
+					inputer.validate(status.WAIT);
 					
 					return v_data.hook(
 						inputer.val(),
 						function(successed) {
 							if (successed) {
-								v_data.validate(status.PASSED);
+								inputer.validate(status.PASSED);
 							} else {
-								v_data.validate(status.INVALID);
+								inputer.validate(status.INVALID);
 							}
 						}
 					);
 				};
 				
 				var v_event = function() {
-					if (v_data.validate(status.VERIFY) == status.PASSED) {
+					if (inputer.data('validate-tested') !== true && inputer.validate(status.TEST) == status.PASSED) {
+						inputer.data('validate-tested', true);
+						return status.WAIT;
+					}
+					
+					if (inputer.data('validate-tested') === true && inputer.validate(status.VERIFY) == status.PASSED) {
 						switch(v_hook()) {
 							case status.PASSED:
-								return v_data.validate(status.PASSED);
+								return inputer.validate(status.PASSED);
 								
 							case status.INVALID:
-								return v_data.validate(status.PASSED);
+								return inputer.validate(status.PASSED);
 						}
 					}
 				};
 				
 				inputer.change(v_event);
 				inputer.keyup(v_event);
+				inputer.click(v_event);
+				
 				inputer.data('validator', v_data);
 				
 				setting.inputs.push(inputer);
 			});
 			
 			form.submit(function() {
-				return checkAll();
+				if (checkAll()) {
+					self.onSubmit(true);
+					
+					return true;
+				} else {
+					self.onSubmit(false);
+				}
+				
+				return false;
 			});
 			
 			inited = true;
@@ -281,14 +326,16 @@
 			var result = true;
 			
 			for (var p in setting.inputs) {
-				if (setting.inputs[p].data('validator').validate(status.GET) != status.PASSED) {
+				if (setting.inputs[p].validate(status.GET) != status.PASSED) {
+					if (result) {
+						self.data.lastErrPos = setting.inputs[p].position();
+					}
+					
 					result = false;
 				}
 			}
 			
-			if (!result) {
-				self.data.lastErrPos = setting.inputs[p].position();
-			} else {
+			if (result) {
 				self.data.lastErrPos = {};
 			}
 			
@@ -306,8 +353,26 @@
 		init();
 	};
 	
-	$.fn.validator = function(options) {
+	$.fn.validator = function(options, config) {
+		var cfg = {};
+		
+		if (typeof config !== 'undefined') {
+			cfg = {
+				topOffset: typeof config.topOffset !== 'undefined' ? config.topOffset : 50
+			};
+		} else {
+			cfg = {
+				topOffset: 50
+			};
+		}
+		
 		var v = new Validator(this, options);
+		
+		v.onSubmit = function(result) {
+			if (!result && typeof v.data.lastErrPos.top !== 'undefined') {
+				$('html, body').animate({ scrollTop: v.data.lastErrPos.top - cfg.topOffset }, 1000);
+			}
+		};
 		
 		return v;
 	};

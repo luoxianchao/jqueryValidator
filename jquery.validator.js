@@ -53,6 +53,18 @@
 			formats: null,
 			inputs: [],
 			binds: {},
+			methods: {
+				length: function(val, max, min) {
+					if ((!max || val.length <= max) && (!min || val.length >= min)) {
+						return true;
+					}
+				},
+				compare: function(val, max, min) {
+					if ((!max || val <= max) && (!min || val >= min)) {
+						return true;
+					}
+				}
+			},
 			events: {
 				Wait: self.onWait,
 				Passed: self.onPassed,
@@ -111,6 +123,16 @@
 				}
 			}
 			
+			if (typeof options.Methods === 'object') {
+				for (var f in options.Methods) {
+					if (typeof options.Methods[f] === 'function') {
+						setting.methods[f] = options.Methods[f];
+					} else {
+						log('Method ' + f + ' not a closure, ignoring');
+					}
+				}
+			}
+			
 			if (typeof options.Bind === 'object') {
 				for (var f in options.Bind) {
 					if (typeof options.Bind[f] === 'function') {
@@ -134,14 +156,15 @@
 					dismissMSGWrong = function() {};
 					
 				var v_data = {
-					Max: inputer.data('validator-maxlength') || inputer.data('va-max'),
-					Min: inputer.data('validator-minlength') || inputer.data('va-min'),
-					Type: inputer.data('validator-type') || inputer.data('va-type'),
-					Resulter: inputer.data('validator-resulter') || inputer.data('va-show'),
-					WrongCSS: inputer.data('validator-wrong') || inputer.data('va-error'),
-					WorkingCSS: inputer.data('validator-working') || inputer.data('va-working'),
-					msgResulter: inputer.data('validator-messager') || inputer.data('va-msgr'),
-					WrongMSG: inputer.data('validator-message') || inputer.data('va-msg'),
+					Max: inputer.data('validator-maxlength') || inputer.data('va-max') || 0,
+					Min: inputer.data('validator-minlength') || inputer.data('va-min') || 0,
+					Type: inputer.data('validator-type') || inputer.data('va-type') || '',
+					Method: inputer.data('validator-method') || inputer.data('va-method') || 'length',
+					Resulter: inputer.data('validator-resulter') || inputer.data('va-show') || '',
+					WrongCSS: inputer.data('validator-wrong') || inputer.data('va-error') || '',
+					WorkingCSS: inputer.data('validator-working') || inputer.data('va-working') || '',
+					msgResulter: inputer.data('validator-messager') || inputer.data('va-msgr') || '',
+					WrongMSG: inputer.data('validator-message') || inputer.data('va-msg') || '',
 					hook: function(value, resultCall) { return status.PASSED; },
 					setWrong: function() {},
 					dismissWrong: function() {},
@@ -198,7 +221,7 @@
 				inputer.validate = function(validated) {
 					switch(validated) {
 						case status.GET:
-							var statusCode = inputer.data('validated');
+							var statusCode = inputer['validated'];
 							
 							if (typeof statusCode === 'undefined') {
 								return inputer.validate(status.VERIFY);
@@ -210,7 +233,7 @@
 						case status.VERIFY:
 							var statusCode = inputer.validate();
 							
-							if (checkStr(inputer.val(), v_data.Max, v_data.Min, v_data.Type)) {
+							if (verify(inputer.val(), v_data.Max, v_data.Min, v_data.Type, v_data.Method)) {
 								return inputer.validate(status.PASSED);
 							} else {
 								return inputer.validate(status.INVALID);
@@ -218,7 +241,7 @@
 							break;
 							
 						case status.TEST:
-							if (checkStr(inputer.val(), v_data.Max, v_data.Min, v_data.Type)) {
+							if (verify(inputer.val(), v_data.Max, v_data.Min, v_data.Type, v_data.Method)) {
 								return status.PASSED;
 							} else {
 								return status.INVALID;
@@ -247,7 +270,7 @@
 									break;
 							}
 							
-							inputer.data('validated', validated);
+							inputer['validated'] = validated;
 							
 							return validated;
 							break;
@@ -258,7 +281,7 @@
 					inputer.validate(status.WAIT);
 					
 					return v_data.hook(
-						inputer.val(),
+						inputer,
 						function(successed) {
 							if (successed) {
 								inputer.validate(status.PASSED);
@@ -270,12 +293,12 @@
 				};
 				
 				var v_event = function() {
-					if (inputer.data('validate-tested') !== true && inputer.validate(status.TEST) == status.PASSED) {
-						inputer.data('validate-tested', true);
+					if (inputer['validate-tested'] !== true && inputer.validate(status.TEST) == status.PASSED) {
+						inputer['validate-tested'] = true;
 						return status.WAIT;
 					}
 					
-					if (inputer.data('validate-tested') === true && inputer.validate(status.VERIFY) == status.PASSED) {
+					if (inputer['validate-tested'] === true && inputer.validate(status.VERIFY) == status.PASSED) {
 						switch(v_hook()) {
 							case status.PASSED:
 								return inputer.validate(status.PASSED);
@@ -290,7 +313,7 @@
 				inputer.keyup(v_event);
 				inputer.click(v_event);
 				
-				inputer.data('validator', v_data);
+				inputer.validator = v_data;
 				
 				setting.inputs.push(inputer);
 			});
@@ -312,7 +335,7 @@
 			return true;
 		};
 		
-		var convertPreg = function(string) { 
+		var convertPreg = function(string) {
 			return string.replace(/\{/g, '').replace(/\}/g, '').replace(/\\x/g, '\\u').match('/(.*)/')[1];
 		}
 		
@@ -342,12 +365,20 @@
 			return result;
 		}
 		
-		var checkStr = function(val, max, min, type) {
-			if ((max && val.length > max) || (min && val.length < min) || ((type && typeof setting.formats[type] !== 'undefined') && !val.match(setting.formats[type]))) {
+		var verify = function(val, max, min, type, method) {
+			if ((type && typeof setting.formats[type] !== 'undefined') && !val.match(setting.formats[type])) {
 				return false;
 			}
 			
-			return true;
+			if (typeof setting.methods[method] === 'function') {
+				if (!setting.methods[method](val, max, min)) {
+					return false;
+				}
+				
+				return true;
+			} else {
+				log('Method ' + method + ' not found.');
+			}
 		};
 		
 		init();

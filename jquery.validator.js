@@ -203,7 +203,7 @@
 					var msgBackup = v_data.msgResulterObj.text();
 					
 					setMSGWrong = function() {
-						v_data.msgResulterObj.text(v_data.WrongMSG);
+						v_data.msgResulterObj.text(v_data.WrongMSG.replace('{max}', v_data.Max).replace('{min}', v_data.Min));
 					};
 					
 					dismissMSGWrong = function() {
@@ -292,13 +292,8 @@
 					);
 				};
 				
-				var v_event = function() {
-					if (inputer['validate-tested'] !== true && inputer.validate(status.TEST) == status.PASSED) {
-						inputer['validate-tested'] = true;
-						return status.WAIT;
-					}
-					
-					if (inputer['validate-tested'] === true && inputer.validate(status.VERIFY) == status.PASSED) {
+				var v_check = function() {
+					if (inputer.validate(status.VERIFY) == status.PASSED) {
 						switch(v_hook()) {
 							case status.PASSED:
 								return inputer.validate(status.PASSED);
@@ -309,9 +304,20 @@
 					}
 				};
 				
-				inputer.change(v_event);
-				inputer.keyup(v_event);
-				inputer.click(v_event);
+				var v_test = function() {
+					if (inputer['validate-tested'] !== true && inputer.validate(status.TEST) == status.PASSED) {
+						inputer['validate-tested'] = true;
+						return status.WAIT;
+					}
+					
+					if (inputer['validate-tested'] === true) {
+						return v_check();
+					}
+				};
+				
+				inputer.change(v_check);
+				inputer.keyup(v_test);
+				inputer.click(v_test);
 				
 				inputer.validator = v_data;
 				
@@ -351,7 +357,7 @@
 			for (var p in setting.inputs) {
 				if (setting.inputs[p].validate(status.GET) != status.PASSED) {
 					if (result) {
-						self.data.lastErrPos = setting.inputs[p].position();
+						self.data.lastErrPos = setting.inputs[p].offset();
 					}
 					
 					result = false;

@@ -63,6 +63,11 @@
 					if ((!max || val <= max) && (!min || val >= min)) {
 						return true;
 					}
+				},
+				equal: function(val, max) {
+					if (val == $(max).val()) {
+						return true;
+					}
 				}
 			},
 			events: {
@@ -133,10 +138,10 @@
 				}
 			}
 			
-			if (typeof options.Bind === 'object') {
-				for (var f in options.Bind) {
-					if (typeof options.Bind[f] === 'function') {
-						setting.binds[f] = options.Bind[f];
+			if (typeof options.Binds === 'object') {
+				for (var f in options.Binds) {
+					if (typeof options.Binds[f] === 'function') {
+						setting.binds[f] = options.Binds[f];
 					} else {
 						log('Bind ' + f + ' not a closure');
 						
@@ -152,6 +157,7 @@
 					dismissCSSWrong = function() {},
 					setCSSWorking = function() {},
 					dismissCSSWorking = function() {},
+					setMSG = function(msg) {},
 					setMSGWrong = function() {},
 					dismissMSGWrong = function() {};
 					
@@ -202,8 +208,16 @@
 				if (typeof v_data.msgResulterObj === 'object') {
 					var msgBackup = v_data.msgResulterObj.text();
 					
+					setMSG = function(msg) {
+						if (msg) {
+							v_data.msgResulterObj.text(msg);
+						} else {
+							v_data.msgResulterObj.text(msgBackup);
+						}
+					};
+					
 					setMSGWrong = function() {
-						v_data.msgResulterObj.text(v_data.WrongMSG.replace('{max}', v_data.Max).replace('{min}', v_data.Min));
+						setMSG(v_data.WrongMSG.replace('{max}', v_data.Max).replace('{min}', v_data.Min));
 					};
 					
 					dismissMSGWrong = function() {
@@ -217,6 +231,8 @@
 						break;
 					}
 				}
+				
+				inputer.message = setMSG;
 				
 				inputer.validate = function(validated) {
 					switch(validated) {

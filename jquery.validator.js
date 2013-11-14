@@ -333,7 +333,6 @@
 				
 				inputer.change(v_check);
 				inputer.keyup(v_test);
-				inputer.click(v_test);
 				
 				inputer.validator = v_data;
 				

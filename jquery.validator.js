@@ -247,8 +247,6 @@
 							break;
 							
 						case status.VERIFY:
-							var statusCode = inputer.validate();
-							
 							if (verify(inputer.val(), v_data.Max, v_data.Min, v_data.Type, v_data.Method)) {
 								return inputer.validate(status.PASSED);
 							} else {
@@ -300,7 +298,13 @@
 						inputer,
 						function(successed) {
 							if (successed) {
-								inputer.validate(status.PASSED);
+								if (inputer.validate(status.TEST) == status.PASSED) {
+									inputer.validate(status.PASSED);
+									
+									return true;
+								} else {
+									inputer.validate(status.INVALID);
+								}
 							} else {
 								inputer.validate(status.INVALID);
 							}

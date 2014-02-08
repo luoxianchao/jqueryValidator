@@ -114,7 +114,13 @@
                 setting.formats = options.Format;
 
                 for (var f in options.Format) {
-                    setting.formats[f] = convertPreg(options.Format[f]);
+                    if (typeof options.Format[f] === 'string') {
+                        if (!(setting.formats[f] = convertPreg(options.Format[f]))) {
+                            log('Format not valid: ' + options.Format[f]);
+                        }
+                    } else {
+                        log('Format not a string: ' + options.Format[f]);
+                    }
                 }
             }
 
@@ -361,7 +367,13 @@
         };
 
         var convertPreg = function(string) {
-            return string.replace(/\{/g, '').replace(/\}/g, '').replace(/\\x/g, '\\u');
+            string = string.replace(/\{/g, '').replace(/\}/g, '').replace(/\\x/g, '\\u').match('/(.*)/');
+
+            if (string != null) {
+                return string[1];
+            }
+
+            return false;
         }
 
         var log = function(message) {

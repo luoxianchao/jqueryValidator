@@ -361,7 +361,7 @@
         };
 
         var convertPreg = function(string) {
-            return string.replace(/\{/g, '').replace(/\}/g, '').replace(/\\x/g, '\\u').match('/(.*)/')[1];
+            return string.replace(/\{/g, '').replace(/\}/g, '').replace(/\\x/g, '\\u');
         }
 
         var log = function(message) {

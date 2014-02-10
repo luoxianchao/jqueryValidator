@@ -374,7 +374,7 @@
             }
 
             return false;
-        }
+        };
 
         var log = function(message) {
             if (typeof console != undefined) {
@@ -400,19 +400,13 @@
             }
 
             return result;
-        }
+        };
 
         var verify = function(val, max, min, type, method) {
-            if (!val) {
-                if (!min) {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-
-            if ((type && typeof setting.formats[type] !== 'undefined') && !val.match(setting.formats[type])) {
+            if (typeof val == 'string' && (type && typeof setting.formats[type] !== 'undefined') && !val.match(setting.formats[type])) {
                 return false;
+            } else {
+                log('Format ' + type + ' not found.');
             }
 
             if (typeof setting.methods[method] === 'function') {
@@ -423,6 +417,14 @@
                 return true;
             } else {
                 log('Method ' + method + ' not found.');
+            }
+
+            if (!val) {
+                if (!min) {
+                    return true;
+                } else {
+                    return false;
+                }
             }
         };
 

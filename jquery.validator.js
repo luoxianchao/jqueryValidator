@@ -404,27 +404,31 @@
 
         var verify = function(val, max, min, type, method) {
             if (typeof val == 'string') {
-                if ((type && typeof setting.formats[type] !== 'undefined') && !val.match(setting.formats[type])) {
-                    return false;
-                } else {
-                    log('Format ' + type + ' not found.');
-                }
+                if (type) {
+                    if (typeof setting.formats[type] !== 'undefined') {
+                        if (!val.match(setting.formats[type])) {
+                            return false;
+                        }
+                    } else {
+                        log('Format ' + type + ' not found.');
 
-                if (typeof setting.methods[method] === 'function') {
-                    if (!setting.methods[method](val, max, min)) {
                         return false;
                     }
+                }
 
-                    return true;
-                } else {
-                    log('Method ' + method + ' not found.');
+                if (method) {
+                    if (typeof setting.methods[method] === 'function') {
+                        if (!setting.methods[method](val, max, min)) {
+                            return false;
+                        }
+                    } else {
+                        log('Method ' + method + ' not found.');
+
+                        return false;
+                    }
                 }
-            } else if (!val) {
-                if (!min) {
-                    return true;
-                } else {
-                    return false;
-                }
+
+                return true;
             }
         };
 

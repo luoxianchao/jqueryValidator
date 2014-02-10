@@ -1,4 +1,4 @@
-/*
+/**
 * jQuery Validator Plugin
 *
 * @copyright    2013 Rain Lee <raincious@gmail.com>
@@ -403,23 +403,23 @@
         };
 
         var verify = function(val, max, min, type, method) {
-            if (typeof val == 'string' && (type && typeof setting.formats[type] !== 'undefined') && !val.match(setting.formats[type])) {
-                return false;
-            } else {
-                log('Format ' + type + ' not found.');
-            }
-
-            if (typeof setting.methods[method] === 'function') {
-                if (!setting.methods[method](val, max, min)) {
+            if (typeof val == 'string') {
+                if ((type && typeof setting.formats[type] !== 'undefined') && !val.match(setting.formats[type])) {
                     return false;
+                } else {
+                    log('Format ' + type + ' not found.');
                 }
 
-                return true;
-            } else {
-                log('Method ' + method + ' not found.');
-            }
+                if (typeof setting.methods[method] === 'function') {
+                    if (!setting.methods[method](val, max, min)) {
+                        return false;
+                    }
 
-            if (!val) {
+                    return true;
+                } else {
+                    log('Method ' + method + ' not found.');
+                }
+            } else if (!val) {
                 if (!min) {
                     return true;
                 } else {

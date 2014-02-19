@@ -42,6 +42,7 @@
         var self = this;
 
         self.onSubmit = function(result) {};
+        self.onSubmitEnable = function(enabled) {};
 
         self.onWait = self.onPassed = self.onError = function(object) {};
 
@@ -49,7 +50,12 @@
             lastErrPos: {},
         };
 
+        var status = {
+            WAIT: 1, PASSED: 2, INVALID: 3, VERIFY: 4, GET: 5, TEST: 6
+        };
+
         var setting = {
+            unsubmitableCss: '',
             formats: null,
             inputs: [],
             binds: {},
@@ -65,7 +71,9 @@
                     }
                 },
                 equal: function(val, max) {
-                    if (val == $(max).val()) {
+                    objVal = $(max).val();
+
+                    if (objVal && objVal == val) {
                         return true;
                     }
                 }
@@ -75,10 +83,6 @@
                 Passed: self.onPassed,
                 Errored: self.onError
             }
-        };
-
-        var status = {
-            WAIT: 1, PASSED: 2, INVALID: 3, VERIFY: 4, GET: 5, TEST: 6
         };
 
         var init = function() {
@@ -104,6 +108,10 @@
                 log('Option must be defined');
 
                 return false;
+            }
+
+            if (typeof options.UnsubmitableCSS !== 'undefined') {
+                setting.unsubmitableCss = options.UnsubmitableCSS;
             }
 
             if (typeof options.Format === 'undefined') {
@@ -243,13 +251,11 @@
                 inputer.validate = function(validated) {
                     switch(validated) {
                         case status.GET:
-                            var statusCode = inputer['validated'];
-
-                            if (typeof statusCode === 'undefined') {
+                            if (typeof inputer['validated'] === 'undefined') {
                                 return inputer.validate(status.VERIFY);
                             }
 
-                            return statusCode;
+                            return inputer['validated'];
                             break;
 
                         case status.VERIFY:
@@ -291,6 +297,7 @@
                             }
 
                             inputer['validated'] = validated;
+                            checkSubmitable(status.GET);
 
                             return validated;
                             break;
@@ -349,6 +356,8 @@
                 setting.inputs.push(inputer);
             });
 
+            checkSubmitable(status.TEST);
+
             form.submit(function() {
                 if (checkAll()) {
                     self.onSubmit(true);
@@ -382,8 +391,41 @@
             }
         };
 
+        var checkSubmitable = function(statusMethod) {
+            submitable = false;
+
+            if (touchAll(statusMethod)) {
+                submitable = true;
+            } else {
+                submitable = false;
+            }
+
+            self.onSubmitEnable(submitable);
+
+            if (setting.unsubmitableCss) {
+                if (!submitable) {
+                    form.addClass(setting.unsubmitableCss);
+                } else {
+                    form.removeClass(setting.unsubmitableCss);
+                }
+            }
+        };
+
+        var touchAll = function(statusMethod) {
+            result = true;
+
+            for (var p in setting.inputs) {
+                if (setting.inputs[p].validate(statusMethod) != status.PASSED) {
+                    result = false;
+                }
+            }
+
+            return result;
+        };
+
         var checkAll = function() {
             var result = true;
+            var passed = false;
 
             for (var p in setting.inputs) {
                 if (setting.inputs[p].validate(status.GET) != status.PASSED) {
@@ -403,7 +445,7 @@
         };
 
         var verify = function(val, max, min, type, method) {
-            if (typeof val == 'string') {
+            if (typeof val === 'string') {
                 if (type) {
                     if (typeof setting.formats[type] !== 'undefined') {
                         if (!val.match(setting.formats[type])) {

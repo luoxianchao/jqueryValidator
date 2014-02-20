@@ -365,6 +365,12 @@
 
                 inputer.change(v_check);
 
+                inputer.focus(function () {
+                    if (inputer.val()) {
+                        v_test();
+                    }
+                });
+
                 inputer.keyup(function () {
                     if (typeof inputer.checkTimer !== 'undefined') {
                         clearTimeout(inputer.checkTimer);

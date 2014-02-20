@@ -1,12 +1,12 @@
 /**
 * jQuery Validator Plugin
 *
-* @copyright    2013 Rain Lee <raincious@gmail.com>
+* @copyright    2014 Rain Lee <raincious@gmail.com>
 * @author       Rain Lee <raincious@gmail.com>
 * @package      jQuery.validator
-* @version      0.0 prototype
+* @version      0.1.0 alpha
 *
-* Copyright (c) 2013, Rain Lee
+* Copyright (c) 2014, Rain Lee
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@
         };
 
         var status = {
-            WAIT: 1, PASSED: 2, INVALID: 3, VERIFY: 4, GET: 5, TEST: 6
+            WAIT: 1, PASSED: 2, INVALID: 3, VERIFY: 4, GET: 5, TEST: 6, TOUCH: 7
         };
 
         var setting = {
@@ -252,7 +252,15 @@
                     switch(validated) {
                         case status.GET:
                             if (typeof inputer['validated'] === 'undefined') {
-                                return inputer.validate(status.VERIFY);
+                                return (inputer['validated'] = inputer.validate(status.VERIFY));
+                            }
+
+                            return inputer['validated'];
+                            break;
+
+                        case status.TOUCH:
+                            if (typeof inputer['validated'] === 'undefined') {
+                                return inputer.validate(status.TEST);
                             }
 
                             return inputer['validated'];
@@ -275,10 +283,13 @@
                             break;
 
                         default:
+                            inputer['validated'] = validated;
+
                             switch(validated) {
                                 case status.WAIT:
                                     setCSSWorking();
                                     setting.events.Wait(inputer);
+                                    enableSubmit(false);
                                     break;
 
                                 case status.PASSED:
@@ -286,6 +297,7 @@
                                     dismissMSGWrong();
                                     dismissCSSWorking();
                                     setting.events.Passed(inputer);
+                                    checkSubmitable(status.TOUCH);
                                     break;
 
                                 case status.INVALID:
@@ -293,11 +305,9 @@
                                     setMSGWrong();
                                     dismissCSSWorking();
                                     setting.events.Errored(inputer);
+                                    enableSubmit(false);
                                     break;
                             }
-
-                            inputer['validated'] = validated;
-                            checkSubmitable(status.GET);
 
                             return validated;
                             break;
@@ -311,7 +321,7 @@
                         inputer,
                         function(successed) {
                             if (successed) {
-                                if (inputer.validate(status.TEST) == status.PASSED) {
+                                if (inputer.validate(status.TEST) === status.PASSED) {
                                     inputer.validate(status.PASSED);
 
                                     return true;
@@ -326,21 +336,26 @@
                 };
 
                 var v_check = function() {
-                    if (inputer.validate(status.VERIFY) == status.PASSED) {
-                        switch(v_hook()) {
-                            case status.PASSED:
-                                return inputer.validate(status.PASSED);
+                    var old = inputer.val();
 
-                            case status.INVALID:
-                                return inputer.validate(status.PASSED);
+                    if (inputer['validate-old'] !== old) {
+                        inputer['validate-old'] = old;
+
+                        if (inputer.validate(status.VERIFY) === status.PASSED) {
+                            switch(v_hook()) {
+                                case status.PASSED:
+                                    return inputer.validate(status.PASSED);
+
+                                case status.INVALID:
+                                    return inputer.validate(status.PASSED);
+                            }
                         }
                     }
                 };
 
                 var v_test = function() {
-                    if (inputer['validate-tested'] !== true && inputer.validate(status.TEST) == status.PASSED) {
+                    if (inputer['validate-tested'] !== true && inputer.validate(status.TEST) === status.PASSED) {
                         inputer['validate-tested'] = true;
-                        return status.WAIT;
                     }
 
                     if (inputer['validate-tested'] === true) {
@@ -349,7 +364,16 @@
                 };
 
                 inputer.change(v_check);
-                inputer.keyup(v_test);
+
+                inputer.keyup(function () {
+                    if (typeof inputer.checkTimer !== 'undefined') {
+                        clearTimeout(inputer.checkTimer);
+                    }
+
+                    inputer.checkTimer = setTimeout(function() {
+                        v_test();
+                    }, 150);
+                });
 
                 inputer.validator = v_data;
 
@@ -391,6 +415,18 @@
             }
         };
 
+        var enableSubmit = function(submitable) {
+            if (setting.unsubmitableCss) {
+                if (!submitable) {
+                    form.addClass(setting.unsubmitableCss);
+                } else {
+                    form.removeClass(setting.unsubmitableCss);
+                }
+            }
+
+            self.onSubmitEnable(submitable);
+        }
+
         var checkSubmitable = function(statusMethod) {
             submitable = false;
 
@@ -400,22 +436,14 @@
                 submitable = false;
             }
 
-            self.onSubmitEnable(submitable);
-
-            if (setting.unsubmitableCss) {
-                if (!submitable) {
-                    form.addClass(setting.unsubmitableCss);
-                } else {
-                    form.removeClass(setting.unsubmitableCss);
-                }
-            }
+            enableSubmit(submitable);
         };
 
         var touchAll = function(statusMethod) {
             result = true;
 
             for (var p in setting.inputs) {
-                if (setting.inputs[p].validate(statusMethod) != status.PASSED) {
+                if (setting.inputs[p].validate(statusMethod) !== status.PASSED) {
                     result = false;
                 }
             }

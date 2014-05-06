@@ -41,8 +41,8 @@
 
         var self = this;
 
-        self.onSubmit = function(result) {};
-        self.onSubmitEnable = function(enabled) {};
+        self.onSubmit = function(form) { return true; };
+        self.onSubmitEnable = function(enabled) { return true; };
 
         self.onWait = self.onPassed = self.onError = function(object) {};
 
@@ -162,6 +162,12 @@
                         return false;
                     }
                 }
+            }
+
+            if (typeof options.topOffset !== 'undefined') {
+                setting.topOffset = parseInt(options.topOffset, 0);
+            } else {
+                setting.topOffset = 50;
             }
 
             form.find('input,textarea,select,button').each(function() {
@@ -390,11 +396,11 @@
 
             form.submit(function() {
                 if (checkAll()) {
-                    self.onSubmit(true);
+                    return self.onSubmit(form);
+                }
 
-                    return true;
-                } else {
-                    self.onSubmit(false);
+                if (typeof self.data.lastErrPos.top !== 'undefined') {
+                    $('html, body').animate({ scrollTop: self.data.lastErrPos.top - setting.topOffset }, 1000);
                 }
 
                 return false;
@@ -511,26 +517,8 @@
         init();
     };
 
-    $.fn.validator = function(options, config) {
-        var cfg = {};
-
-        if (typeof config !== 'undefined') {
-            cfg = {
-                topOffset: typeof config.topOffset !== 'undefined' ? config.topOffset : 50
-            };
-        } else {
-            cfg = {
-                topOffset: 50
-            };
-        }
-
+    $.fn.validator = function(options) {
         var v = new Validator(this, options);
-
-        v.onSubmit = function(result) {
-            if (!result && typeof v.data.lastErrPos.top !== 'undefined') {
-                $('html, body').animate({ scrollTop: v.data.lastErrPos.top - cfg.topOffset }, 1000);
-            }
-        };
 
         return v;
     };

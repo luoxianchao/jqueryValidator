@@ -165,7 +165,7 @@
             }
 
             if (typeof options.topOffset !== 'undefined') {
-                setting.topOffset = parseInt(options.topOffset, 0);
+                setting.topOffset = parseInt(options.topOffset, 10);
             } else {
                 setting.topOffset = 50;
             }

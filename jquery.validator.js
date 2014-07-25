@@ -40,6 +40,7 @@
         var inited = false;
 
         var self = this;
+        var formSubmitting = false;
 
         self.onSubmit = function(form) { return true; };
         self.onSubmitEnable = function(enabled) { return true; };
@@ -56,6 +57,9 @@
 
         var setting = {
             unsubmitableCss: '',
+            submittingCSS: '',
+            resubmitCSS: '',
+            submitTimeout: 120000,
             formats: null,
             inputs: [],
             binds: {},
@@ -112,6 +116,18 @@
 
             if (typeof options.UnsubmitableCSS !== 'undefined') {
                 setting.unsubmitableCss = options.UnsubmitableCSS;
+            }
+
+            if (typeof options.submittingCSS !== 'undefined') {
+                setting.submittingCSS = options.submittingCSS;
+            }
+
+            if (typeof options.resubmitCSS !== 'undefined') {
+                setting.resubmitCSS = options.resubmitCSS;
+            }
+
+            if (typeof options.submitTimeout === 'number' && !isNaN(options.submitTimeout)) {
+                setting.submitTimeout = parseInt(options.submitTimeout,  10);
             }
 
             if (typeof options.Format === 'undefined') {
@@ -337,6 +353,8 @@
                             } else {
                                 inputer.validate(status.INVALID);
                             }
+
+                            return false;
                         }
                     );
                 };
@@ -394,9 +412,33 @@
 
             checkSubmitable(status.TEST);
 
-            form.submit(function() {
+            form.submit(function(event) {
+                var submitable = false;
+
                 if (checkAll()) {
-                    return self.onSubmit(form);
+                    if (self.onSubmit(form) && !formSubmitting) {
+                        formSubmitting = true;
+
+                        if (setting.submittingCSS) {
+                            if (setting.resubmitCSS && form.hasClass(setting.resubmitCSS)) {
+                                form.removeClass(setting.resubmitCSS);
+                            }
+
+                            form.addClass(setting.submittingCSS);
+
+                            setTimeout(function() {
+                                form.removeClass(setting.submittingCSS);
+
+                                if (setting.resubmitCSS) {
+                                    form.addClass(setting.resubmitCSS);
+                                }
+
+                                formSubmitting = false;
+                            }, setting.submitTimeout);
+                        }
+
+                        return true;
+                    }
                 }
 
                 if (typeof self.data.lastErrPos.top !== 'undefined') {
@@ -514,7 +556,7 @@
             }
         };
 
-        init();
+        return init();
     };
 
     $.fn.validator = function(options) {

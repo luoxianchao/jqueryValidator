@@ -203,6 +203,8 @@
                     Type: inputer.data('validator-type') || inputer.data('va-type') || '',
                     Method: inputer.data('validator-method') || inputer.data('va-method') || 'length',
                     Resulter: inputer.data('validator-resulter') || inputer.data('va-show') || '',
+                    ClickBind: inputer.data('validator-click') || inputer.data('va-click') || '',
+                    FocusCSS: inputer.data('validator-focus') || inputer.data('va-focus') || 'focused',
                     WrongCSS: inputer.data('validator-wrong') || inputer.data('va-error') || '',
                     WorkingCSS: inputer.data('validator-working') || inputer.data('va-working') || '',
                     msgResulter: inputer.data('validator-messager') || inputer.data('va-msgr') || '',
@@ -239,6 +241,20 @@
                     dismissCSSWorking = function() {
                         v_data.ResulterObj.removeClass(v_data.WorkingCSS);
                     };
+
+                    inputer.focus(function() {
+                        v_data.ResulterObj.addClass(v_data.FocusCSS);
+                    });
+
+                    inputer.blur(function() {
+                        v_data.ResulterObj.removeClass(v_data.FocusCSS);
+                    });
+
+                    if (v_data.ClickBind != "no") {
+                        v_data.ResulterObj.click(function() {
+                            inputer.focus();
+                        });
+                    }
                 }
 
                 if (typeof v_data.msgResulterObj === 'object') {

@@ -60,7 +60,7 @@
             submittingCSS: '',
             resubmitCSS: '',
             submitTimeout: 120000,
-            formats: null,
+            formats: {},
             inputs: [],
             binds: {},
             methods: {
@@ -130,11 +130,7 @@
                 setting.submitTimeout = parseInt(options.submitTimeout,  10);
             }
 
-            if (typeof options.Format === 'undefined') {
-                log('Format not set');
-
-                return false;
-            } else {
+            if (typeof options.Format === 'object' && options.Format) {
                 setting.formats = options.Format;
 
                 for (var f in options.Format) {
@@ -148,7 +144,7 @@
                 }
             }
 
-            if (typeof options.Events === 'object') {
+            if (typeof options.Events === 'object' && options.Events) {
                 for (var f in options.Events) {
                     if (typeof options.Events[f] === 'function') {
                         setting.events[f] = options.Events[f];
@@ -158,7 +154,7 @@
                 }
             }
 
-            if (typeof options.Methods === 'object') {
+            if (typeof options.Methods === 'object' && options.Methods) {
                 for (var f in options.Methods) {
                     if (typeof options.Methods[f] === 'function') {
                         setting.methods[f] = options.Methods[f];
@@ -168,7 +164,7 @@
                 }
             }
 
-            if (typeof options.Binds === 'object') {
+            if (typeof options.Binds === 'object' && options.Binds) {
                 for (var f in options.Binds) {
                     if (typeof options.Binds[f] === 'function') {
                         setting.binds[f] = options.Binds[f];
@@ -225,7 +221,7 @@
                     v_data.msgResulterObj = $(v_data.msgResulter);
                 }
 
-                if (typeof v_data.ResulterObj === 'object') {
+                if (typeof v_data.ResulterObj === 'object' && v_data.ResulterObj) {
                     setCSSWrong = function() {
                         v_data.ResulterObj.addClass(v_data.WrongCSS);
                     };
@@ -257,7 +253,7 @@
                     }
                 }
 
-                if (typeof v_data.msgResulterObj === 'object') {
+                if (typeof v_data.msgResulterObj === 'object' && v_data.msgResulterObj) {
                     var msgBackup = v_data.msgResulterObj.text();
 
                     setMSG = function(msg) {
@@ -545,7 +541,7 @@
         var verify = function(val, max, min, type, method) {
             if (typeof val === 'string') {
                 if (type) {
-                    if (typeof setting.formats[type] !== 'undefined') {
+                    if (typeof setting.formats[type] === 'string') {
                         if (!val.match(setting.formats[type])) {
                             return false;
                         }

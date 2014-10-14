@@ -211,7 +211,7 @@
 
                     $('body').append(refer);
 
-                    var autoExpandTextArea = function(obj, config) {
+                    var autoExpandTextArea = function(obj, config, recheck) {
                         var toHeight = 0;
 
                         refer.text(
@@ -246,8 +246,8 @@
                         obj.height(toHeight);
 
                         setTimeout(function() {
-                            if (obj.height() != toHeight) {
-                                autoExpandTextArea(obj, config);
+                            if (obj.height() != toHeight && recheck) {
+                                autoExpandTextArea(obj, config, false);
                             }
                         }, 10);
                     };
@@ -271,7 +271,7 @@
                         }
 
                         var resizer = function() {
-                            autoExpandTextArea(obj, setting);
+                            autoExpandTextArea(obj, setting, true);
                         };
 
                         var delayResizer = function() {
@@ -284,7 +284,7 @@
                             setTimeout(function() {
                                 resizer();
                                 delaying = false;
-                            }, 50);
+                            }, 5);
                         };
 
                         obj.keyup(delayResizer);

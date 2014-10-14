@@ -245,11 +245,13 @@
 
                         obj.height(toHeight);
 
-                        setTimeout(function() {
-                            if (obj.height() != toHeight && recheck) {
-                                autoExpandTextArea(obj, config, false);
-                            }
-                        }, 10);
+                        if (recheck) {
+                            setTimeout(function() {
+                                if (obj.height() != toHeight) {
+                                    autoExpandTextArea(obj, config, false);
+                                }
+                            }, 10);
+                        }
                     };
 
                     var getHeightFromCSS = function(value) {
@@ -287,8 +289,8 @@
                             }, 5);
                         };
 
-                        obj.keyup(delayResizer);
-                        obj.change(resizer);
+                        obj.bind('input propertychange keyup change', resizer);
+
                         $(window).resize(delayResizer);
 
                         resizer();

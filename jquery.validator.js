@@ -182,6 +182,120 @@
                 setting.topOffset = 50;
             }
 
+            if (typeof options.textAreaAutoExpand === 'undefined' || options.textAreaAutoExpand === false) {
+                /* Idea from: http://www.jacklmoore.com/autosize and http://robertnyman.com/2006/04/24/get-the-rendered-style-of-an-element/ */
+                (function() {
+                    var refer = $('<div></div>');
+                    var referCSS = [
+                        'width',
+                        'minHeight',
+                        'fontFamily',
+                        'fontSize',
+                        'textIndent',
+                        'whiteSpace',
+                        'textTransform',
+                        'letterSpacing',
+                        'fontStyle',
+                        'wordSpacing',
+                        'fontWeight',
+                        'lineHeight',
+                        'wordWrap'
+                    ];
+
+                    refer.css({
+                        'zoom': '1',
+                        'wordBreak': 'break-all',
+                        'display': 'none',
+                        'whiteSpace': 'pre-wrap'
+                    });
+
+                    $('body').append(refer);
+
+                    var autoExpandTextArea = function(obj, config) {
+                        var toHeight = 0;
+
+                        refer.text(
+                            obj.val() + "\r\n"
+                        );
+
+                        refer.html(
+                            refer.html().replace(/\n/g, '<br />')
+                        );
+
+                        toHeight = refer.height();
+
+                        for (var p in referCSS) {
+                            refer.css(
+                                referCSS[p],
+                                obj.css(referCSS[p])
+                            );
+                        }
+
+                        if (config.min && toHeight < config.min) {
+                            toHeight = config.min;
+
+                            obj.css('overflowY', '');
+                        } else if (config.max && toHeight > config.max) {
+                            toHeight = config.max;
+
+                            obj.css('overflowY', '');
+                        } else {
+                            obj.css('overflowY', 'hidden');
+                        }
+
+                        obj.height(toHeight);
+
+                        setTimeout(function() {
+                            if (obj.height() != toHeight) {
+                                autoExpandTextArea(obj, config);
+                            }
+                        }, 10);
+                    };
+
+                    var getHeightFromCSS = function(value) {
+                        refer.css('width', value); // width will be reseted by autoExpandTextArea
+
+                        return refer.width();
+                    };
+
+                    form.find($('textarea')).each(function() {
+                        var obj = $(this);
+                        var setting = {
+                            min: obj.data('validator-textarea-expand-min') || obj.data('va-tah-min') || getHeightFromCSS(obj.css('minHeight')) || obj.height(),
+                            max: obj.data('validator-textarea-expand-max') || obj.data('va-tah-max') || getHeightFromCSS(obj.css('maxHeight')) || obj.height()
+                        };
+                        var delaying = false;
+
+                        if (setting.min == setting.max) {
+                            return;
+                        }
+
+                        var resizer = function() {
+                            autoExpandTextArea(obj, setting);
+                        };
+
+                        var delayResizer = function() {
+                            if (delaying) {
+                                return;
+                            }
+
+                            delaying = true;
+
+                            setTimeout(function() {
+                                resizer();
+                                delaying = false;
+                            }, 50);
+                        };
+
+                        obj.keyup(delayResizer);
+                        obj.change(resizer);
+                        $(window).resize(delayResizer);
+
+                        resizer();
+                    });
+                })();
+            }
+
             form.find('input,textarea,select,button').each(function() {
                 var inputer = $(this);
 

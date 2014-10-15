@@ -214,6 +214,13 @@
                     var autoExpandTextArea = function(obj, config, recheck) {
                         var toHeight = 0;
 
+                        for (var p in referCSS) {
+                            refer.css(
+                                referCSS[p],
+                                obj.css(referCSS[p])
+                            );
+                        }
+
                         refer.text(
                             obj.val() + "\r\n"
                         );
@@ -223,13 +230,6 @@
                         );
 
                         toHeight = refer.height();
-
-                        for (var p in referCSS) {
-                            refer.css(
-                                referCSS[p],
-                                obj.css(referCSS[p])
-                            );
-                        }
 
                         if (config.min && toHeight < config.min) {
                             toHeight = config.min;
@@ -289,7 +289,7 @@
                             }, 5);
                         };
 
-                        obj.bind('input propertychange keyup change', resizer);
+                        obj.bind('input propertychange keyup change focus blur', resizer);
 
                         $(window).resize(delayResizer);
 

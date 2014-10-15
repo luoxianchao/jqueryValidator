@@ -288,7 +288,9 @@
                             }, 50);
                         };
 
-                        obj.bind('change input keyup', resizer);
+                        obj.bind('change input keyup paste', resizer);
+
+                        obj.bind('propertychange blur focus', delayResizer);
 
                         $(window).resize(delayResizer);
 

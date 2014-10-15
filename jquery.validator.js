@@ -185,7 +185,7 @@
             if (typeof options.textAreaAutoExpand === 'undefined' || options.textAreaAutoExpand === false) {
                 /* Idea from: http://www.jacklmoore.com/autosize and http://robertnyman.com/2006/04/24/get-the-rendered-style-of-an-element/ */
                 (function() {
-                    var refer = $('<div></div>');
+                    var refer = $('<pre></pre>');
                     var referCSS = [
                         'width',
                         'minHeight',
@@ -211,7 +211,7 @@
 
                     $('body').append(refer);
 
-                    var autoExpandTextArea = function(obj, config, recheck) {
+                    var autoExpandTextArea = function(obj, config) {
                         var toHeight = 0;
 
                         for (var p in referCSS) {
@@ -222,14 +222,20 @@
                         }
 
                         refer.text(
-                            obj.val() + "\r\n"
+                            obj.val() + "<em style=\"height: 1px; width: 1px; display: block; float: left;\"><!-- Bottom --></em>"
                         );
 
                         refer.html(
                             refer.html().replace(/\n/g, '<br />')
                         );
 
+                        refer.width(obj.width());
+
                         toHeight = refer.height();
+
+                        if (!toHeight || toHeight < 0) {
+                            return;
+                        }
 
                         if (config.min && toHeight < config.min) {
                             toHeight = config.min;
@@ -244,14 +250,6 @@
                         }
 
                         obj.height(toHeight);
-
-                        if (recheck) {
-                            setTimeout(function() {
-                                if (obj.height() != toHeight) {
-                                    autoExpandTextArea(obj, config, false);
-                                }
-                            }, 10);
-                        }
                     };
 
                     var getHeightFromCSS = function(value) {
@@ -273,7 +271,7 @@
                         }
 
                         var resizer = function() {
-                            autoExpandTextArea(obj, setting, true);
+                            autoExpandTextArea(obj, setting);
                         };
 
                         var delayResizer = function() {
@@ -285,11 +283,12 @@
 
                             setTimeout(function() {
                                 resizer();
+
                                 delaying = false;
-                            }, 5);
+                            }, 50);
                         };
 
-                        obj.bind('input propertychange keyup change focus blur', resizer);
+                        obj.bind('change input keyup', resizer);
 
                         $(window).resize(delayResizer);
 

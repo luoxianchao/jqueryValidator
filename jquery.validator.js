@@ -56,7 +56,7 @@
         };
 
         var setting = {
-            unsubmitableCss: '',
+            unsubmitableCSS: '',
             submittingCSS: '',
             resubmitCSS: '',
             submitTimeout: 120000,
@@ -115,19 +115,19 @@
             }
 
             if (typeof options.UnsubmitableCSS !== 'undefined') {
-                setting.unsubmitableCss = options.UnsubmitableCSS;
+                setting.unsubmitableCSS = options.UnsubmitableCSS;
             }
 
-            if (typeof options.submittingCSS !== 'undefined') {
-                setting.submittingCSS = options.submittingCSS;
+            if (typeof options.SubmittingCSS !== 'undefined') {
+                setting.submittingCSS = options.SubmittingCSS;
             }
 
-            if (typeof options.resubmitCSS !== 'undefined') {
-                setting.resubmitCSS = options.resubmitCSS;
+            if (typeof options.ResubmitCSS !== 'undefined') {
+                setting.resubmitCSS = options.ResubmitCSS;
             }
 
-            if (typeof options.submitTimeout === 'number' && !isNaN(options.submitTimeout)) {
-                setting.submitTimeout = parseInt(options.submitTimeout,  10);
+            if (typeof options.SubmitTimeout === 'number' && !isNaN(options.SubmitTimeout)) {
+                setting.submitTimeout = parseInt(options.SubmitTimeout,  10);
             }
 
             if (typeof options.Format === 'object' && options.Format) {
@@ -176,13 +176,13 @@
                 }
             }
 
-            if (typeof options.topOffset !== 'undefined') {
-                setting.topOffset = parseInt(options.topOffset, 10);
+            if (typeof options.TopOffset !== 'undefined') {
+                setting.topOffset = parseInt(options.TopOffset, 10);
             } else {
                 setting.topOffset = 50;
             }
 
-            if (typeof options.textAreaAutoExpand === 'undefined' || options.textAreaAutoExpand === false) {
+            if (typeof options.TextAreaAutoExpand === 'undefined' || options.TextAreaAutoExpand === false) {
                 /* Idea from: http://www.jacklmoore.com/autosize and http://robertnyman.com/2006/04/24/get-the-rendered-style-of-an-element/ */
                 (function() {
                     var refer = $('<pre></pre>');
@@ -599,11 +599,11 @@
         };
 
         var enableSubmit = function(submitable) {
-            if (setting.unsubmitableCss) {
+            if (setting.unsubmitableCSS) {
                 if (!submitable) {
-                    form.addClass(setting.unsubmitableCss);
+                    form.addClass(setting.unsubmitableCSS);
                 } else {
-                    form.removeClass(setting.unsubmitableCss);
+                    form.removeClass(setting.unsubmitableCSS);
                 }
             }
 

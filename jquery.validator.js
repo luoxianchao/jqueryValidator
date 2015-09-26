@@ -42,6 +42,11 @@
         var self = this;
         var formSubmitting = false;
 
+        var submitable = false;
+
+        var emptySubmitterFunction = function(reseter) {};
+        var defaultSubmitTrigger = null;
+
         self.onSubmit = function(form) { return true; };
         self.onSubmitEnable = function(enabled) { return true; };
 
@@ -52,7 +57,7 @@
         };
 
         var status = {
-            WAIT: 1, PASSED: 2, INVALID: 3, VERIFY: 4, GET: 5, TEST: 6, TOUCH: 7
+            RESET: 255, WAIT: 1, PASSED: 2, INVALID: 3, VERIFY: 4, GET: 5, TEST: 6, TOUCH: 7
         };
 
         var setting = {
@@ -63,6 +68,7 @@
             formats: {},
             inputs: [],
             binds: {},
+            submitter: emptySubmitterFunction,
             methods: {
                 length: function(val, max, min) {
                     if ((!max || val.length <= max) && (!min || val.length >= min)) {
@@ -127,7 +133,7 @@
             }
 
             if (typeof options.SubmitTimeout === 'number' && !isNaN(options.SubmitTimeout)) {
-                setting.submitTimeout = parseInt(options.SubmitTimeout,  10);
+                setting.submitTimeout = parseInt(options.SubmitTimeout, 10);
             }
 
             if (typeof options.Format === 'object' && options.Format) {
@@ -174,6 +180,10 @@
                         return false;
                     }
                 }
+            }
+
+            if (typeof options.Submitter === 'function' && options.Submitter) {
+                setting.submitter = options.Submitter;
             }
 
             if (typeof options.TopOffset !== 'undefined') {
@@ -330,6 +340,10 @@
                     validated: function(validated) {}
                 };
 
+                if (inputer.data('validator-submit') || inputer.data('va-submit')) {
+                    defaultSubmitTrigger = inputer;
+                }
+
                 if (v_data.Resulter) {
                     v_data.ResulterObj = $(v_data.Resulter);
                 }
@@ -363,11 +377,27 @@
                         v_data.ResulterObj.removeClass(v_data.FocusCSS);
                     });
 
-                    if (v_data.ClickBind != "no") {
+                    if (v_data.ClickBind != 'no') {
                         v_data.ResulterObj.click(function() {
                             inputer.focus();
                         });
                     }
+
+                    inputer.keydown(function(e) {
+                        if (defaultSubmitTrigger === null) {
+                            return;
+                        }
+
+                        if (!e.ctrlKey) {
+                            return;
+                        }
+
+                        if (e.keyCode != 10 && e.keyCode != 13) {
+                            return;
+                        }
+
+                        defaultSubmitTrigger.click();
+                    });
                 }
 
                 if (typeof v_data.msgResulterObj === 'object' && v_data.msgResulterObj) {
@@ -437,6 +467,14 @@
                             inputer['validated'] = validated;
 
                             switch(validated) {
+                                case status.RESET:
+                                    dismissCSSWrong();
+                                    dismissMSGWrong();
+                                    dismissCSSWorking();
+                                    checkSubmitable(status.TOUCH);
+                                    delete inputer['validated'];
+                                    break;
+
                                 case status.WAIT:
                                     setCSSWorking();
                                     setting.events.Wait(inputer);
@@ -518,13 +556,13 @@
 
                 inputer.change(v_check);
 
-                inputer.focus(function () {
+                inputer.focus(function() {
                     if (inputer.val()) {
                         v_test();
                     }
                 });
 
-                inputer.keyup(function () {
+                inputer.keyup(function() {
                     if (typeof inputer.checkTimer !== 'undefined') {
                         clearTimeout(inputer.checkTimer);
                     }
@@ -542,39 +580,96 @@
             checkSubmitable(status.TEST);
 
             form.submit(function(event) {
-                var submitable = false;
+                var waitTimer = null;
 
-                if (checkAll()) {
-                    if (self.onSubmit(form) && !formSubmitting) {
-                        formSubmitting = true;
+                if (!inited) {
+                    return;
+                }
 
-                        if (setting.submittingCSS) {
-                            if (setting.resubmitCSS && form.hasClass(setting.resubmitCSS)) {
-                                form.removeClass(setting.resubmitCSS);
-                            }
-
-                            form.addClass(setting.submittingCSS);
-
-                            setTimeout(function() {
-                                form.removeClass(setting.submittingCSS);
-
-                                if (setting.resubmitCSS) {
-                                    form.addClass(setting.resubmitCSS);
-                                }
-
-                                formSubmitting = false;
-                            }, setting.submitTimeout);
-                        }
-
-                        return true;
+                var addClass = function(removeCallback) {
+                    if (!setting.submittingCSS) {
+                        return;
                     }
+
+                    if (setting.resubmitCSS && form.hasClass(setting.resubmitCSS)) {
+                        form.removeClass(setting.resubmitCSS);
+                    }
+
+                    form.addClass(setting.submittingCSS);
+
+                    removeCallback();
+                };
+
+                var removeClass = function() {
+                    if (form.hasClass(setting.submittingCSS)) {
+                        form.removeClass(setting.submittingCSS);
+                    }
+
+                    if (setting.resubmitCSS && setting.resubmitCSS) {
+                        form.addClass(setting.resubmitCSS);
+                    }
+                };
+
+                submitable = false;
+
+                if (!checkAll()) {
+                    if (typeof self.data.lastErrPos.top !== 'undefined') {
+                        $('html, body').animate({ scrollTop: self.data.lastErrPos.top - setting.topOffset }, 1000);
+                    }
+
+                    return false;
                 }
 
-                if (typeof self.data.lastErrPos.top !== 'undefined') {
-                    $('html, body').animate({ scrollTop: self.data.lastErrPos.top - setting.topOffset }, 1000);
+                if (!self.onSubmit(form) || formSubmitting) {
+                    return false;
                 }
 
-                return false;
+                formSubmitting = true;
+
+                if (waitTimer !== null) {
+                    clearTimeout(waitTimer);
+
+                    waitTimer = null;
+                }
+
+                if (setting.submitter != emptySubmitterFunction) {
+                    setting.submitter(function() {
+                        resetAll();
+                        checkSubmitable(status.TEST);
+
+                        removeClass();
+
+                        formSubmitting = false;
+
+                        if (waitTimer !== null) {
+                            clearTimeout(waitTimer);
+
+                            waitTimer = null;
+                        }
+                    });
+
+                    checkSubmitable(status.TEST);
+
+                    addClass(function() {
+                        waitTimer = setTimeout(function() {
+                            removeClass();
+
+                            formSubmitting = false;
+                        }, setting.submitTimeout);
+                    });
+
+                    return false;
+                }
+
+                addClass(function() {
+                    waitTimer = setTimeout(function() {
+                        removeClass();
+
+                        formSubmitting = false;
+                    }, setting.submitTimeout);
+                });
+
+                return true;
             });
 
             inited = true;
@@ -598,16 +693,16 @@
             }
         };
 
-        var enableSubmit = function(submitable) {
+        var enableSubmit = function(isSubmitable) {
             if (setting.unsubmitableCSS) {
-                if (!submitable) {
+                if (!isSubmitable) {
                     form.addClass(setting.unsubmitableCSS);
                 } else {
                     form.removeClass(setting.unsubmitableCSS);
                 }
             }
 
-            self.onSubmitEnable(submitable);
+            self.onSubmitEnable(isSubmitable);
         }
 
         var checkSubmitable = function(statusMethod) {
@@ -620,6 +715,10 @@
             }
 
             enableSubmit(submitable);
+        };
+
+        var resetAll = function() {
+            touchAll(status.RESET);
         };
 
         var touchAll = function(statusMethod) {
